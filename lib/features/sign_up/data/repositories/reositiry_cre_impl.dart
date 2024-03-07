@@ -1,46 +1,59 @@
+import 'package:hive/hive.dart';
 import 'package:trafic_gesture/features/sign_up/data/datasources/auth_remote_create.dart';
 import 'package:trafic_gesture/features/sign_up/domain/entities/user.dart';
 import 'package:trafic_gesture/features/sign_up/domain/repositories/user_repository_create.dart';
 
-class UserRepositoryImplement extends UserRepository {
-  final AuthRemoteDataSource authRemoteDataSource;
+import 'package:trafic_gesture/shared/infrastructure/exceptions/http_exception.dart';
+import 'package:trafic_gesture/shared/infrastructure/either.dart';
 
-  UserRepositoryImplement(this.authRemoteDataSource);
+class UserRepositoryImplement implements UserRepository {
+  final AuthRemoteDataSource remoteDataSource;
 
+  UserRepositoryImplement(this.remoteDataSource);
   @override
-  Future<void> createUser(
-    String firstName,
-    String lastName,
-    String email,
-    String password,
-    String dateBirth,
-    String carNumber,
-    String role,
-  ) async {
+  Future<Either<AppException, User>> createUser(User user) async {
     try {
-      final userData = await authRemoteDataSource.createUser(
-          firstName, lastName, email, password, dateBirth, carNumber, role);
+      final createUserResult = await remoteDataSource.createUser(user);
 
-      print('Received user data: $userData');
-      print('Received user data: $userData');
+      return createUserResult.fold(
+        (left) {
+          // Handle error case
+          print('Error occurred during user creation: $left');
+          return Left(left);
+        },
+        (right) async {
+          // Handle success case
+          print('Received user data: $right');
 
-      print('Received user data: $userData');
+          if (right is User) {
+            print('Received user object: $right');
+            print('Email from user object: ${right.email}');
+            // Save user to Hive
 
-      if (userData != null) {
-        final user = User.fromJson(userData);
-        print('Converted user object: $user');
-
-        print('Email from user object: ${user.email}');
-        // return user;
-      } else {
-        // Handle null response from remote data source
-        print('Received null user data');
-        return null;
-      }
+            return Right(right);
+          } else {
+            // Handle unexpected response from remote data source
+            print('Received unexpected user data: $right');
+            return Left(
+              AppException(
+                message: 'Received unexpected user data: $right',
+                statusCode: 1,
+                identifier: 'UserRepository.createUser',
+              ),
+            );
+          }
+        },
+      );
     } catch (e) {
-      // Handle exceptions
-      print('Login failed: $e');
-      return null;
+      // Handle generic error
+      print('User creation failed: $e');
+      return Left(
+        AppException(
+          message: 'User creation failed: $e',
+          statusCode: 1,
+          identifier: 'UserRepository.createUser',
+        ),
+      );
     }
   }
 }

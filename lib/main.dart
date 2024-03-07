@@ -40,6 +40,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:trafic_gesture/features/login/presentation/widgets/loginpage.dart';
 import 'package:trafic_gesture/features/sign_up/presentation/widgets/create_account.dart';
+import 'package:trafic_gesture/features/userprofil.dart';
 
 void main() {
   runApp(
@@ -50,7 +51,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -64,6 +65,8 @@ class MyApp extends StatelessWidget {
         '/signup': (context) =>
             const CreateAccount(), // Define the '/signup' route
         // Add more routes as needed
+      '/UserProfilePage': (context) =>
+            const UserProfilePage(), // Define the '/signup' route
       },
     );
   }

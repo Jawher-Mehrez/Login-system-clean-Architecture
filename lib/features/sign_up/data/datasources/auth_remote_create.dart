@@ -1,53 +1,55 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+
+
+import 'package:trafic_gesture/features/sign_up/domain/entities/user.dart';
+import 'package:trafic_gesture/shared/infrastructure/either.dart';
+import 'package:trafic_gesture/shared/infrastructure/exceptions/http_exception.dart';
+import 'package:trafic_gesture/shared/infrastructure/network_service.dart';
 
 class AuthRemoteDataSource {
-  final String baseUrl;
+  final NetworkService networkService;
 
-  AuthRemoteDataSource(this.baseUrl);
+  AuthRemoteDataSource(this.networkService);
 
-  Future<Map<String, dynamic>?> createUser(
-    String firstName,
-    String lastName,
-    String email,
-    String password,
-    String dateBirth,
-    String carNumber,
-    String role,
+  Future<Either<AppException, User>> createUser(
+    User user,
   ) async {
-    print('Email: $email');
-    print('Password: $password');
-    print('role: $role');
-    print('lastName: $lastName');
-    print('dateBirth: $dateBirth');
-    print('carNumber: $carNumber');
-    print('lastName: $lastName');
-    final response = await http.post(
-      Uri.parse('$baseUrl/register'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
-        'firstName': firstName,
-        'lastName': lastName,
-        'email': email,
-        'password': password,
-        'dateBirth': dateBirth,
-        'carNumber': carNumber,
-        'role': role,
-      }),
-    );
+    try {
+final response = await networkService.post(
+  '/register',
+  data: user.toJson(),
+);
 
-    if (response.statusCode == 200) {
-      final responseBody = json.decode(response.body);
+return response.fold(
+  (exception) {
+    // Return the exception wrapped in a Left side of Either
+    return Left(exception);
+  },
+  (response) {
+    try {
+      final Map<String, dynamic> jsonResponse = response.data;
+      final user = User.fromJson(jsonResponse);
+      networkService.updateHeader({'Authorization': user.token});
+      return Right(user);
+    } catch (e) {
+      return Left(
+        AppException(
+          message: 'Failed to parse response data: $e',
+          statusCode: -1,
+          identifier: 'AuthRemoteDataSource.createUser',
+        ),
+      );
+    }
+  },
+);
 
-      if (responseBody != null && responseBody is Map<String, dynamic>) {
-        return responseBody;
-      } else {
-        throw Exception('Invalid response format');
-      }
-    } else {
-      throw Exception('Failed to create account');
+    } catch (e) {
+      return Left(
+        AppException(
+          message: 'Failed to create account: $e',
+          statusCode: -1,
+          identifier: 'AuthRemoteDataSource.createUser',
+        ),
+      );
     }
   }
 }

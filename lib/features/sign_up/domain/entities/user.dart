@@ -1,13 +1,37 @@
-class User {
-  final int id;
-  final String firstName;
-  final String lastName;
-  final String email;
-  final String password;
-  final String dateBirth;
-  final String carNumber;
-  final String role;
-  final String token;
+import 'package:hive/hive.dart';
+
+part 'user.g.dart';
+
+@HiveType(typeId: 0)
+class User extends HiveObject {
+  static int _lastAssignedId = 0;
+
+  @HiveField(0)
+  int id;
+
+  @HiveField(1)
+  String firstName;
+
+  @HiveField(2)
+  String lastName;
+
+  @HiveField(3)
+  String email;
+
+  @HiveField(4)
+  String password;
+
+  @HiveField(5)
+  String dateBirth;
+
+  @HiveField(6)
+  String carNumber;
+
+  @HiveField(7)
+  String role;
+
+  @HiveField(8)
+  String token;
 
   User({
     this.id = 0,
@@ -19,7 +43,10 @@ class User {
     this.carNumber = '',
     this.role = '',
     this.token = '',
-  });
+  }) {
+    // Increment the last assigned ID and assign it to the current instance
+    id = ++_lastAssignedId;
+  }
 
   factory User.fromJson(Map<String, dynamic> map) {
     return User(

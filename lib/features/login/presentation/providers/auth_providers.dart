@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:trafic_gesture/shared/infrastructure/providers/network_service_provider.dart';
 import '../../data/datasources/auth_local_data_source.dart';
 import '../../data/datasources/auth_remote_data_source.dart';
 import '../../data/repositories/auth_repository.dart';
@@ -27,9 +28,8 @@ final localStorageDataSourceProvider = Provider((ref) async {
 
 // Provider for AuthRemoteDataSource
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
-  const baseUrl =
-      'http://10.0.2.2:3000/api/auth'; // Replace with your API base URL
-  return AuthRemoteDataSource(baseUrl);
+  final networkService = ref.read(networkServiceProvider);
+  return AuthRemoteDataSource(networkService);
 });
 
 final authRepositoryProvider = Provider((ref) async {

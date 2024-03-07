@@ -1,34 +1,46 @@
-import 'dart:convert';
-import 'package:http/http.dart' as http;
+import 'package:trafic_gesture/features/login/domain/entities/user.dart';
+import 'package:trafic_gesture/shared/infrastructure/either.dart';
+import 'package:trafic_gesture/shared/infrastructure/exceptions/http_exception.dart';
+import 'package:trafic_gesture/shared/infrastructure/network_service.dart';
 
 class AuthRemoteDataSource {
-  final String baseUrl;
+  final NetworkService networkService;
 
-  AuthRemoteDataSource(this.baseUrl);
+  AuthRemoteDataSource(this.networkService);
 
-  Future<Map<String, dynamic>?> login(String email, String password) async {
+  Future<Either<AppException, User>> login(String email, String password) async {
     print('Email: $email');
     print('Password: $password');
-    final response = await http.post(
-      Uri.parse('$baseUrl/login'),
-      headers: <String, String>{
-        'Content-Type': 'application/json; charset=UTF-8',
-      },
-      body: jsonEncode(<String, String>{
+
+    try {
+      final eitherType = await networkService.post('/login', data: {
         'email': email,
         'password': password,
-      }),
-    );
+      });
 
-    if (response.statusCode == 200) {
-      final responseBody = json.decode(response.body);
-      if (responseBody != null && responseBody is Map<String, dynamic>) {
-        return responseBody;
-      } else {
-        throw Exception('Invalid response format');
-      }
-    } else {
-      throw Exception('Failed to login');
+      return eitherType.fold(
+        (exception) {
+          // Return the exception wrapped in a Left side of Either
+          return Left(exception);
+        },
+        (response) {
+          // Parse the response data into a User object
+          final user = User.fromJson(response.data);
+          // Update the token for requests
+          networkService.updateHeader({'Authorization': user.token});
+          // Return the user wrapped in a Right side of Either
+          return Right(user);
+        },
+      );
+    } catch (e) {
+      // Return the caught exception wrapped in a Left side of Either
+      return Left(
+        AppException(
+          message: 'Unknown error occurred',
+          statusCode: 1,
+          identifier: '${e.toString()}\nAuthRemoteDataSource.login',
+        ),
+      );
     }
   }
 }

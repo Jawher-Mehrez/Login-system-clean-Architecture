@@ -6,14 +6,12 @@ import 'package:awesome_dialog/awesome_dialog.dart';
 
 final checkboxStateProvider = StateProvider<bool>((ref) => false);
 
-// ignore: must_be_immutable
 class InputFieldWidget extends ConsumerWidget {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isObscured = true;
 
-  // List<String?> _savedEmails = []; // List to hold saved emails
-  InputFieldWidget({super.key});
+  InputFieldWidget({Key? key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,11 +24,6 @@ class InputFieldWidget extends ConsumerWidget {
       _usernameController.text = savedEmail ?? '';
       _passwordController.text = savedPassword ?? '';
     }
-
-    // useEffect(() {
-    //   loadSavedCredentials();
-    //   return null;
-    // }, []);
 
     final _isTrue = ref.watch(checkboxStateProvider);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -73,7 +66,6 @@ class InputFieldWidget extends ConsumerWidget {
         const SizedBox(height: 10),
         TextFormField(
           controller: _passwordController,
-          // onTap: () => loadSavedCredentials(),
           obscureText: _isObscured,
           decoration: InputDecoration(
             hintText: "Password",
@@ -115,36 +107,41 @@ class InputFieldWidget extends ConsumerWidget {
             final username = _usernameController.text;
             final password = _passwordController.text;
             final authRepository = await ref.read(authRepositoryProvider);
-            final loginSuccess = await authRepository.login(username, password);
+            final loginResult = await authRepository.login(username, password);
 
-            if (loginSuccess != null) {
-              // Save credentials only when login is successful
-              if (_isTrue) {
+            print('Login result: $loginResult'); // Add this line for debugging
+
+            loginResult.fold(
+              (error) {
+                // Error occurred during login
+                print('Error occurred: $error'); // Add this line for debugging
+                ErrorDialogue.showErrorDialog(context);
+                ref.read(checkboxStateProvider.notifier).state = false;
+              },
+              (user) async {
+                // Login successful
+                print('Login successful'); // Add this line for debugging
+
                 final localStorageDataSource =
                     await ref.read(localStorageDataSourceProvider);
                 await localStorageDataSource.saveEmail(username);
                 await localStorageDataSource.savePassword(password);
 
-                final saveloginemail = await localStorageDataSource.getEmail();
-                final savepasslogin =
+                final savedEmail = await localStorageDataSource.getEmail();
+                final savedPassword =
                     await localStorageDataSource.getPassword();
 
-                print('savepasslogin: $savepasslogin');
-                print('saveloginemail: $saveloginemail');
-              }
+                print('Saved Email: $savedEmail');
+                print('Saved Password: $savedPassword');
 
-              final usernameBeforeAt = username.split('@')[0];
-              AwesomeDialogue.showSuccessDialog(context, usernameBeforeAt);
-              // Reset the state of the checkbox to false after successful login
-              ref.read(checkboxStateProvider.notifier).state = false;
-            } else {
-              ErrorDialogue.showErrorDialog(context);
-              // Reset the state of the checkbox to false after successful login
-              ref.read(checkboxStateProvider.notifier).state = false;
-            }
+                final usernameBeforeAt = username.split('@')[0];
+                AwesomeDialogue.showSuccessDialog(context, usernameBeforeAt);
+                ref.read(checkboxStateProvider.notifier).state = false;
+              },
+            );
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor:Color(0xFF22BA8E),   
+            backgroundColor: Color(0xFF22BA8E),
             foregroundColor: Colors.white,
             elevation: 0,
             padding: EdgeInsets.symmetric(
@@ -163,57 +160,40 @@ class InputFieldWidget extends ConsumerWidget {
           ),
         ),
         SizedBox(height: 20),
-        // Adding ToggleButton here
-        Center(
-          child: Row(
-            mainAxisAlignment:
-                MainAxisAlignment.center, // Center the children vertically
-            children: [
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    vertical: 8.0), // Add padding for spacing
-                child: Text(
-                  'Remember Me ',
-                  style: TextStyle(
-                    color: _isTrue
-                        ? const Color.fromARGB(255, 105, 244, 109)
-                        : Colors.white, // Change color based on _isTrue value
-                    fontSize: 16, // Text size
-                    fontWeight: FontWeight.bold, // Add a bit of emphasis
+        Container(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width, // Set maximum width
+          ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Flexible(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Text(
+                      'Remember Me ',
+                      style: TextStyle(
+                        color: _isTrue
+                            ? const Color.fromARGB(255, 105, 244, 109)
+                            : Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              // Checkbox(
-              //   value: _isTrue,
-              //   onChanged: (newValue) async {
-              //     ref.read(checkboxStateProvider.notifier).state = newValue!;
-              //     if (newValue == true) {
-              //       final localStorageDataSource =
-              //           await ref.read(localStorageDataSourceProvider);
-              //       await localStorageDataSource
-              //           .saveEmail(_usernameController.text);
-              //       await localStorageDataSource
-              //           .savePassword(_passwordController.text);
-
-              //       final saveloginemail =
-              //           await localStorageDataSource.getEmail();
-              //       final savepasslogin =
-              //           await localStorageDataSource.getPassword();
-
-              //       print('savepasslogin: $savepasslogin');
-              //       print('saveloginemail: $saveloginemail');
-              //     }
-              //   },
-              // ),
-              Checkbox(
-                value: _isTrue,
-                onChanged: (newValue) {
-                  ref.read(checkboxStateProvider.notifier).state = newValue!;
-                },
-              ),
-            ],
+                Checkbox(
+                  value: _isTrue,
+                  onChanged: (newValue) {
+                    ref.read(checkboxStateProvider.notifier).state = newValue!;
+                  },
+                ),
+              ],
+            ),
           ),
-        )
+        ),
       ],
     );
   }
