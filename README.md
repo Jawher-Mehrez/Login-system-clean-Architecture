@@ -1,6 +1,6 @@
 # Login-system
 
-A new Flutter project.
+initial test with clean architecture
 
 ## Getting Started
 
